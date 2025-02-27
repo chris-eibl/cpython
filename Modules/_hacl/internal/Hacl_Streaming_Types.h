@@ -49,19 +49,23 @@ typedef struct Hacl_Streaming_MD_state_64_s
 }
 Hacl_Streaming_MD_state_64;
 
+#if defined(HACL_CAN_COMPILE_VEC128)
 typedef struct Hacl_Streaming_Blake2_Types_two_vec128_s
 {
   Lib_IntVector_Intrinsics_vec128 *fst;
   Lib_IntVector_Intrinsics_vec128 *snd;
 }
 Hacl_Streaming_Blake2_Types_two_vec128;
+#endif
 
+#if defined(HACL_CAN_COMPILE_VEC256)
 typedef struct Hacl_Streaming_Blake2_Types_two_vec256_s
 {
   Lib_IntVector_Intrinsics_vec256 *fst;
   Lib_IntVector_Intrinsics_vec256 *snd;
 }
 Hacl_Streaming_Blake2_Types_two_vec256;
+#endif
 
 typedef struct Hacl_Streaming_Blake2_Types_block_state_blake2b_32_s
 {
@@ -72,6 +76,7 @@ typedef struct Hacl_Streaming_Blake2_Types_block_state_blake2b_32_s
 }
 Hacl_Streaming_Blake2_Types_block_state_blake2b_32;
 
+#if defined(HACL_CAN_COMPILE_VEC256)
 typedef struct Hacl_Streaming_Blake2_Types_block_state_blake2b_256_s
 {
   uint8_t fst;
@@ -80,6 +85,7 @@ typedef struct Hacl_Streaming_Blake2_Types_block_state_blake2b_256_s
   Hacl_Streaming_Blake2_Types_two_vec256 f3;
 }
 Hacl_Streaming_Blake2_Types_block_state_blake2b_256;
+#endif
 
 typedef struct K____uint32_t___uint32_t__s
 {
@@ -97,6 +103,7 @@ typedef struct Hacl_Streaming_Blake2_Types_block_state_blake2s_32_s
 }
 Hacl_Streaming_Blake2_Types_block_state_blake2s_32;
 
+#if defined(HACL_CAN_COMPILE_VEC128)
 typedef struct Hacl_Streaming_Blake2_Types_block_state_blake2s_128_s
 {
   uint8_t fst;
@@ -105,6 +112,7 @@ typedef struct Hacl_Streaming_Blake2_Types_block_state_blake2s_128_s
   Hacl_Streaming_Blake2_Types_two_vec128 f3;
 }
 Hacl_Streaming_Blake2_Types_block_state_blake2s_128;
+#endif
 
 #define Hacl_Streaming_Types_None 0
 #define Hacl_Streaming_Types_Some 1
