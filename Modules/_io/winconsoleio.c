@@ -187,7 +187,7 @@ _wchar_to_utf8_count(const unsigned char *s, DWORD len, DWORD n)
         if (mid == 0) {
             mid = len > 1 ? len - 1 : 1;
         }
-        DWORD wlen = MultiByteToWideChar(CP_UTF8, 0, s, mid, NULL, 0);
+        DWORD wlen = MultiByteToWideChar(CP_UTF8, 0, (LPCCH)s, mid, NULL, 0);
         if (wlen <= n) {
             s += mid;
             start += mid;

@@ -39,7 +39,7 @@ const char *_PyImport_DynLoadFiletab[] = {
 
 static char *GetPythonImport (HINSTANCE hModule)
 {
-    unsigned char *dllbase, *import_data, *import_name;
+    char *dllbase, *import_data, *import_name;
     DWORD pe_offset, opt_offset;
     WORD opt_magic;
     int num_dict_off, import_off;
@@ -52,7 +52,7 @@ static char *GetPythonImport (HINSTANCE hModule)
     /* Module instance is also the base load address.  First portion of
        memory is the MS-DOS loader, which holds the offset to the PE
        header (from the load base) at 0x3C */
-    dllbase = (unsigned char *)hModule;
+    dllbase = (char *)hModule;
     pe_offset = DWORD_AT(dllbase + 0x3C);
 
     /* The PE signature must be "PE\0\0" */

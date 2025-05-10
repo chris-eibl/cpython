@@ -303,7 +303,7 @@ trip_signal(int sig_num)
     int fd = wakeup.fd;
     if (fd != INVALID_FD) {
         PyInterpreterState *interp = _PyInterpreterState_Main();
-        unsigned char byte = (unsigned char)sig_num;
+        char byte = (char)sig_num;
 #ifdef MS_WINDOWS
         if (wakeup.use_send) {
             Py_ssize_t rc = send(fd, &byte, 1, 0);

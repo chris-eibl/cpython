@@ -1643,7 +1643,7 @@ winreg_QueryValueEx_impl(PyObject *module, HKEY key, const wchar_t *name)
             break;
 
         bufSize *= 2;
-        tmp = (char *) PyMem_Realloc(retBuf, bufSize);
+        tmp = (BYTE *) PyMem_Realloc(retBuf, bufSize);
         if (tmp == NULL) {
             PyMem_Free(retBuf);
             return PyErr_NoMemory();
