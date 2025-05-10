@@ -303,10 +303,10 @@ trip_signal(int sig_num)
     int fd = wakeup.fd;
     if (fd != INVALID_FD) {
         PyInterpreterState *interp = _PyInterpreterState_Main();
-        char byte = (char)sig_num;
+        unsigned char byte = (unsigned char)sig_num;
 #ifdef MS_WINDOWS
         if (wakeup.use_send) {
-            Py_ssize_t rc = send(fd, &byte, 1, 0);
+            Py_ssize_t rc = send(fd, (char*)&byte, 1, 0);
 
             if (rc < 0) {
                 int last_error = GetLastError();
