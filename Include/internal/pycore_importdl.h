@@ -106,7 +106,7 @@ extern int _PyImport_RunModInitFunc(
 #ifdef MS_WINDOWS
 #include <windows.h>
 
-#ifdef _DEBUG
+#ifdef Py_DEBUG
 #  define PYD_DEBUG_SUFFIX "_d"
 #else
 #  define PYD_DEBUG_SUFFIX ""
