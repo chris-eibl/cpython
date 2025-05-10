@@ -459,7 +459,7 @@ class BaseEventLoop(events.AbstractEventLoop):
         return futures.Future(loop=self)
 
     def create_task(self, coro, **kwargs):
-        """Schedule a coroutine object.
+        """Schedule or begin executing a coroutine object.
 
         Return a task object.
         """
@@ -1879,6 +1879,8 @@ class BaseEventLoop(events.AbstractEventLoop):
         - 'protocol' (optional): Protocol instance;
         - 'transport' (optional): Transport instance;
         - 'socket' (optional): Socket instance;
+        - 'source_traceback' (optional): Traceback of the source;
+        - 'handle_traceback' (optional): Traceback of the handle;
         - 'asyncgen' (optional): Asynchronous generator that caused
                                  the exception.
 

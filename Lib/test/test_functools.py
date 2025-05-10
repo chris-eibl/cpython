@@ -1,4 +1,5 @@
 import abc
+from annotationlib import Format, get_annotations
 import builtins
 import collections
 import collections.abc
@@ -22,6 +23,8 @@ from inspect import Signature
 
 from test.support import import_helper
 from test.support import threading_helper
+from test.support import cpython_only
+from test.support import EqualToForwardRef
 
 import functools
 
@@ -60,6 +63,14 @@ class BadTuple(tuple):
 
 class MyDict(dict):
     pass
+
+class TestImportTime(unittest.TestCase):
+
+    @cpython_only
+    def test_lazy_import(self):
+        import_helper.ensure_lazy_imports(
+            "functools", {"os", "weakref", "typing", "annotationlib", "warnings"}
+        )
 
 
 class TestPartial:
@@ -2075,6 +2086,34 @@ class TestLRU:
         self.assertEqual(str(Signature.from_callable(lru.cache_info)), '()')
         self.assertEqual(str(Signature.from_callable(lru.cache_clear)), '()')
 
+    def test_get_annotations(self):
+        def orig(a: int) -> str: ...
+        lru = self.module.lru_cache(1)(orig)
+
+        self.assertEqual(
+            get_annotations(orig), {"a": int, "return": str},
+        )
+        self.assertEqual(
+            get_annotations(lru), {"a": int, "return": str},
+        )
+
+    def test_get_annotations_with_forwardref(self):
+        def orig(a: int) -> nonexistent: ...
+        lru = self.module.lru_cache(1)(orig)
+
+        self.assertEqual(
+            get_annotations(orig, format=Format.FORWARDREF),
+            {"a": int, "return": EqualToForwardRef('nonexistent', owner=orig)},
+        )
+        self.assertEqual(
+            get_annotations(lru, format=Format.FORWARDREF),
+            {"a": int, "return": EqualToForwardRef('nonexistent', owner=lru)},
+        )
+        with self.assertRaises(NameError):
+            get_annotations(orig, format=Format.VALUE)
+        with self.assertRaises(NameError):
+            get_annotations(lru, format=Format.VALUE)
+
     @support.skip_on_s390x
     @unittest.skipIf(support.is_wasi, "WASI has limited C stack")
     @support.skip_if_sanitizer("requires deep stack", ub=True, thread=True)
@@ -2922,7 +2961,7 @@ class TestSingleDispatch(unittest.TestCase):
                 self.assertEqual(meth.__qualname__, prefix + meth.__name__)
                 self.assertEqual(meth.__doc__,
                                  ('My function docstring'
-                                  if support.HAVE_DOCSTRINGS
+                                  if support.HAVE_PY_DOCSTRINGS
                                   else None))
                 self.assertEqual(meth.__annotations__['arg'], int)
 
@@ -3077,7 +3116,7 @@ class TestSingleDispatch(unittest.TestCase):
             with self.subTest(meth=meth):
                 self.assertEqual(meth.__doc__,
                                  ('My function docstring'
-                                  if support.HAVE_DOCSTRINGS
+                                  if support.HAVE_PY_DOCSTRINGS
                                   else None))
                 self.assertEqual(meth.__annotations__['arg'], int)
 
@@ -3554,7 +3593,7 @@ class TestCachedProperty(unittest.TestCase):
     def test_doc(self):
         self.assertEqual(CachedCostItem.cost.__doc__,
                          ("The cost of the item."
-                          if support.HAVE_DOCSTRINGS
+                          if support.HAVE_PY_DOCSTRINGS
                           else None))
 
     def test_module(self):
