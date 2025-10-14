@@ -208,6 +208,7 @@ PyObject_GetItem(PyObject *o, PyObject *key)
 #if defined(_MSC_VER) && !defined(__clang__) && _Py_TAIL_CALL_INTERP && !defined(_Py_USING_PGO)
 Py_NO_INLINE
 #endif
+int
 PyMapping_GetOptionalItem(PyObject *obj, PyObject *key, PyObject **restrict result)
 {
     if (PyDict_CheckExact(obj)) {

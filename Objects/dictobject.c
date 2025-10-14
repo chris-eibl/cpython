@@ -2226,8 +2226,8 @@ _PyDict_NewPresized(Py_ssize_t minused)
 }
 
 PyObject *
-_PyDict_FromItems(PyObject *const *keys, Py_ssize_t keys_offset,
-                  PyObject *const *values, Py_ssize_t values_offset,
+_PyDict_FromItems(PyObject *const *restrict keys, Py_ssize_t keys_offset,
+                  PyObject *const *restrict values, Py_ssize_t values_offset,
                   Py_ssize_t length)
 {
     bool unicode = true;
