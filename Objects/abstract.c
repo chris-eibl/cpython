@@ -205,7 +205,9 @@ PyObject_GetItem(PyObject *o, PyObject *key)
     return type_error("'%.200s' object is not subscriptable", o);
 }
 
-Py_NO_INLINE_MSVC_TAILCALL int
+#if defined(_MSC_VER) && !defined(__clang__) && _Py_TAIL_CALL_INTERP && !defined(_Py_USING_PGO)
+Py_NO_INLINE
+#endif
 PyMapping_GetOptionalItem(PyObject *obj, PyObject *key, PyObject **restrict result)
 {
     if (PyDict_CheckExact(obj)) {
