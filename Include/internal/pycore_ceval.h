@@ -391,12 +391,6 @@ _PyForIter_VirtualIteratorNext(PyThreadState* tstate, struct _PyInterpreterFrame
 #define SPECIAL___AEXIT__   3
 #define SPECIAL_MAX   3
 
-// Just a scope. Hints to the programmer and compiler
-// That any local variable defined within this block MUST
-// not escape from the current definition.
-# define Py_BEGIN_LOCALS_MUST_NOT_ESCAPE {
-# define Py_END_LOCALS_MUST_NOT_ESCAPE }
-
 #ifdef __cplusplus
 }
 #endif
