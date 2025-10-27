@@ -160,6 +160,10 @@ dump_item(_PyStackRef item)
         printf("<NULL>");
         return;
     }
+    if (PyStackRef_IsMalformed(item)) {
+        printf("<INVALID>");
+        return;
+    }
     if (PyStackRef_IsTaggedInt(item)) {
         printf("%" PRId64, (int64_t)PyStackRef_UntagInt(item));
         return;
@@ -2020,7 +2024,7 @@ PyEval_EvalCodeEx(PyObject *_co, PyObject *globals, PyObject *locals,
 {
     PyThreadState *tstate = _PyThreadState_GET();
     PyObject *res = NULL;
-    PyObject *defaults = _PyTuple_FromArray(defs, defcount);
+    PyObject *defaults = PyTuple_FromArray(defs, defcount);
     if (defaults == NULL) {
         return NULL;
     }
