@@ -1753,7 +1753,7 @@ const char *_PyOpcode_OpName[267] = {
 };
 #endif
 
-extern const uint8_t _PyOpcode_Caches[256];
+PyAPI_DATA(const uint8_t) _PyOpcode_Caches[256];
 #ifdef NEED_OPCODE_METADATA
 const uint8_t _PyOpcode_Caches[256] = {
     [TO_BOOL] = 3,
@@ -1809,7 +1809,7 @@ const uint8_t _PyOpcode_NeedsGuardIp[256] = {
 };
 #endif
 
-extern const uint8_t _PyOpcode_Deopt[256];
+PyAPI_DATA(const uint8_t) _PyOpcode_Deopt[256];
 #ifdef NEED_OPCODE_METADATA
 const uint8_t _PyOpcode_Deopt[256] = {
     [122] = 122,
