@@ -298,7 +298,7 @@ static inline Py_ssize_t Py_SIZE(PyObject *ob) {
 #endif
 #endif // !defined(_Py_OPAQUE_PYOBJECT)
 
-static inline Py_ALWAYS_INLINE int Py_IS_TYPE(PyObject *ob, PyTypeObject *type) {
+static inline int Py_IS_TYPE(PyObject *ob, PyTypeObject *type) {
     return Py_TYPE(ob) == type;
 }
 #if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 < 0x030b0000
