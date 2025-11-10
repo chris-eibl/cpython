@@ -507,7 +507,7 @@ static inline void Py_XINCREF(PyObject *op)
 #  define Py_XINCREF(op) Py_XINCREF(_PyObject_CAST(op))
 #endif
 
-static inline void Py_XDECREF(PyObject *op)
+static inline Py_ALWAYS_INLINE void Py_XDECREF(PyObject *op)
 {
     if (op != _Py_NULL) {
         Py_DECREF(op);

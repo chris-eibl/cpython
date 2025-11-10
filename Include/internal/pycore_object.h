@@ -474,7 +474,7 @@ static inline void _Py_DECREF_MORTAL_SPECIALIZED(const char *filename, int linen
 
 #else
 
-static inline void Py_DECREF_MORTAL(PyObject *op)
+static inline Py_ALWAYS_INLINE void Py_DECREF_MORTAL(PyObject *op)
 {
     assert(!_Py_IsStaticImmortal(op));
     _Py_DECREF_STAT_INC();

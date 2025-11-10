@@ -266,7 +266,7 @@ _PyFrame_HasHiddenLocals(_PyInterpreterFrame *frame);
 PyObject *
 _PyFrame_GetLocals(_PyInterpreterFrame *frame);
 
-static inline bool
+static inline Py_ALWAYS_INLINE bool
 _PyThreadState_HasStackSpace(PyThreadState *tstate, int size)
 {
     assert(

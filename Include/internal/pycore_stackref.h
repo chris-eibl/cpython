@@ -494,7 +494,7 @@ PyStackRef_IsHeapSafe(_PyStackRef stackref)
     return true;
 }
 
-static inline _PyStackRef
+static inline Py_ALWAYS_INLINE _PyStackRef
 PyStackRef_MakeHeapSafe(_PyStackRef stackref)
 {
     if (PyStackRef_IsHeapSafe(stackref)) {
@@ -548,7 +548,7 @@ PyStackRef_FromPyObjectBorrow(PyObject *obj)
             }                                                           \
         } while (0)
 
-static inline void
+static inline Py_ALWAYS_INLINE void
 PyStackRef_CLOSE_SPECIALIZED(_PyStackRef ref, destructor destruct)
 {
     (void)destruct;
@@ -716,7 +716,7 @@ PyStackRef_FromPyObjectStealMortal(PyObject *obj)
     return ref;
 }
 
-static inline _PyStackRef
+static inline Py_ALWAYS_INLINE _PyStackRef
 _PyStackRef_FromPyObjectNew(PyObject *obj)
 {
     assert(obj != NULL);
@@ -770,7 +770,7 @@ PyStackRef_IsHeapSafe(_PyStackRef ref)
     return (ref.bits & Py_TAG_BITS) != Py_TAG_REFCNT || ref.bits == PyStackRef_NULL_BITS ||  _Py_IsImmortal(BITS_TO_PTR_MASKED(ref));
 }
 
-static inline _PyStackRef
+static inline Py_ALWAYS_INLINE _PyStackRef
 PyStackRef_MakeHeapSafe(_PyStackRef ref)
 {
     if (PyStackRef_IsHeapSafe(ref)) {
@@ -806,7 +806,7 @@ PyStackRef_IsNullOrInt(_PyStackRef ref)
     return PyStackRef_IsNull(ref) || PyStackRef_IsTaggedInt(ref);
 }
 
-static inline void
+static inline Py_ALWAYS_INLINE void
 PyStackRef_CLOSE_SPECIALIZED(_PyStackRef ref, destructor destruct)
 {
     assert(!PyStackRef_IsNull(ref));
