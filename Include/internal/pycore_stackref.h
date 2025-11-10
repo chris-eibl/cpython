@@ -494,7 +494,7 @@ PyStackRef_IsHeapSafe(_PyStackRef stackref)
     return true;
 }
 
-static inline Py_ALWAYS_INLINE _PyStackRef
+static inline _PyStackRef
 PyStackRef_MakeHeapSafe(_PyStackRef stackref)
 {
     if (PyStackRef_IsHeapSafe(stackref)) {
@@ -548,7 +548,7 @@ PyStackRef_FromPyObjectBorrow(PyObject *obj)
             }                                                           \
         } while (0)
 
-static inline Py_ALWAYS_INLINE void
+static inline void
 PyStackRef_CLOSE_SPECIALIZED(_PyStackRef ref, destructor destruct)
 {
     (void)destruct;
@@ -806,7 +806,14 @@ PyStackRef_IsNullOrInt(_PyStackRef ref)
     return PyStackRef_IsNull(ref) || PyStackRef_IsTaggedInt(ref);
 }
 
-static inline Py_ALWAYS_INLINE void
+#ifdef _WIN32
+#define PyStackRef_CLOSE_SPECIALIZED(REF, destruct) \
+do { \
+    _PyStackRef _temp = (REF); \
+    if (PyStackRef_RefcountOnObject(_temp)) Py_DECREF_MORTAL_SPECIALIZED(BITS_TO_PTR(_temp), destruct); \
+} while (0)
+#else
+static inline void
 PyStackRef_CLOSE_SPECIALIZED(_PyStackRef ref, destructor destruct)
 {
     assert(!PyStackRef_IsNull(ref));
@@ -814,6 +821,7 @@ PyStackRef_CLOSE_SPECIALIZED(_PyStackRef ref, destructor destruct)
         Py_DECREF_MORTAL_SPECIALIZED(BITS_TO_PTR(ref), destruct);
     }
 }
+#endif
 
 #ifdef _WIN32
 #define PyStackRef_XCLOSE PyStackRef_CLOSE
