@@ -2226,8 +2226,8 @@ _PyDict_NewPresized(Py_ssize_t minused)
 }
 
 PyObject *
-_PyDict_FromItems(PyObject *const *restrict keys, Py_ssize_t keys_offset,
-                  PyObject *const *restrict values, Py_ssize_t values_offset,
+_PyDict_FromItems(PyObject *const *keys, Py_ssize_t keys_offset,
+                  PyObject *const *values, Py_ssize_t values_offset,
                   Py_ssize_t length)
 {
     bool unicode = true;
@@ -2651,7 +2651,7 @@ _PyDict_LoadBuiltinsFromGlobals(PyObject *globals)
 
 /* Consumes references to key and value */
 static int
-setitem_take2_lock_held(PyDictObject *restrict mp, PyObject *restrict key, PyObject *restrict value)
+setitem_take2_lock_held(PyDictObject *mp, PyObject *key, PyObject *value)
 {
     ASSERT_DICT_LOCKED(mp);
 
@@ -2676,7 +2676,7 @@ setitem_take2_lock_held(PyDictObject *restrict mp, PyObject *restrict key, PyObj
 }
 
 int
-_PyDict_SetItem_Take2(PyDictObject *restrict mp, PyObject *restrict key, PyObject *restrict value)
+_PyDict_SetItem_Take2(PyDictObject *mp, PyObject *key, PyObject *value)
 {
     int res;
     Py_BEGIN_CRITICAL_SECTION(mp);
@@ -2705,7 +2705,7 @@ PyDict_SetItem(PyObject *op, PyObject *key, PyObject *value)
 }
 
 static int
-setitem_lock_held(PyDictObject *restrict mp, PyObject *restrict key, PyObject *restrict value)
+setitem_lock_held(PyDictObject *mp, PyObject *key, PyObject *value)
 {
     assert(key);
     assert(value);

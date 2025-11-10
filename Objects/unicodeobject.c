@@ -10067,7 +10067,7 @@ PyUnicode_Join(PyObject *separator, PyObject *seq)
 }
 
 PyObject *
-_PyUnicode_JoinArray(PyObject *restrict separator, PyObject *const *restrict items, Py_ssize_t seqlen)
+_PyUnicode_JoinArray(PyObject *separator, PyObject *const *items, Py_ssize_t seqlen)
 {
     PyObject *res = NULL; /* the result */
     PyObject *sep = NULL;
@@ -10983,7 +10983,7 @@ unicode_center_impl(PyObject *self, Py_ssize_t width, Py_UCS4 fillchar)
 /* This function assumes that str1 and str2 are readied by the caller. */
 
 static int
-unicode_compare(PyObject *restrict str1, PyObject *restrict str2)
+unicode_compare(PyObject *str1, PyObject *str2)
 {
 #define COMPARE(TYPE1, TYPE2) \
     do { \
