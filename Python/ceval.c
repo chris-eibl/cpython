@@ -108,6 +108,18 @@
         } \
     } while (0)
 
+#undef Py_DECREF_MORTAL
+#define Py_DECREF_MORTAL(arg) \
+    do { \
+        PyObject *op = _PyObject_CAST(arg); \
+        _Py_DECREF_STAT_INC(); \
+        if (--op->ob_refcnt == 0) { \
+            _PyReftracerTrack(op, PyRefTracer_DESTROY); \
+            destructor dealloc = Py_TYPE(op)->tp_dealloc; \
+            (*dealloc)(op); \
+        } \
+    } while (0)
+
 #else // Py_GIL_DISABLED
 
 #undef Py_DECREF
