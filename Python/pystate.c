@@ -1514,6 +1514,7 @@ init_threadstate(_PyThreadStateImpl *_tstate,
     }
 
     tstate->_status.initialized = 1;
+    _tstate->n_stackref_scratch_used = 0;
 }
 
 static void
