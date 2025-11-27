@@ -32,6 +32,31 @@
 
 #ifndef MS_WINDOWS
     #include <sys/mman.h>
+#else
+    #include <windows.h>
+    #include <winnt.h>
+    #include "dbghelp.h"
+typedef union _UNWIND_CODE {
+	struct {
+		BYTE CodeOffset;
+		BYTE UnwindOp : 4;
+		BYTE OpInfo   : 4;
+	};
+	USHORT FrameOffset;
+} UNWIND_CODE, *PUNWIND_CODE;
+
+typedef struct _UNWIND_INFO {
+	BYTE Version       : 3;
+	BYTE Flags         : 5;
+	BYTE SizeOfProlog;
+	BYTE CountOfCodes;
+	BYTE FrameRegister : 4;
+	BYTE FrameOffset   : 4;
+	UNWIND_CODE UnwindCode[1];
+/*	UNWIND_CODE MoreUnwindCode[((CountOfCodes + 1) & ~1) - 1];
+ *	OPTIONAL ULONG ExceptionHandler;
+ *	OPTIONAL ULONG ExceptionData[]; */
+} UNWIND_INFO, *PUNWIND_INFO;
 #endif
 
 static size_t
@@ -96,6 +121,7 @@ jit_free(unsigned char *memory, size_t size)
     OPT_STAT_ADD(jit_freed_memory_size, size);
     return 0;
 }
+static bool sym_initialized = false;
 
 static int
 mark_executable(unsigned char *memory, size_t size)
@@ -104,6 +130,54 @@ mark_executable(unsigned char *memory, size_t size)
         return 0;
     }
     assert(size % get_page_size() == 0);
+
+    UNWIND_INFO* unwind_info = (UNWIND_INFO*)(memory + size - sizeof(RUNTIME_FUNCTION) - sizeof(UNWIND_INFO));
+    memset(unwind_info, 0, sizeof(UNWIND_INFO));
+    unwind_info->Version = 1;
+    unwind_info->Flags = UNW_FLAG_EHANDLER;
+
+    unsigned char* base_address = memory;
+
+    RUNTIME_FUNCTION* func_table = (RUNTIME_FUNCTION*)(memory + size - sizeof(RUNTIME_FUNCTION));
+    func_table->BeginAddress = 0;
+    func_table->EndAddress = (DWORD)size;
+    func_table->UnwindData = (DWORD)((unsigned char*)unwind_info - base_address);
+    //RtlAddFunctionTable(func_table, 1, (DWORD64)memory);
+
+    HANDLE process = GetCurrentProcess();
+    if (!sym_initialized)
+    {
+        if (!SymInitialize(process, NULL, false))
+            printf("Failed to call SymInitialize.");
+
+        sym_initialized = true;
+    }
+    char name[80];
+    snprintf(name, sizeof(name), "JIT_mod_at_%p", memory);
+    if (!SymLoadModuleEx(process, NULL, NULL, name, (DWORD64)memory, (DWORD)size, NULL, SLMFLAG_VIRTUAL))
+        printf("Failed to call SymLoadModuleEx.");
+    snprintf(name, sizeof(name), "JIT_func_at_%p", memory);
+    if (!SymAddSymbol(process, (DWORD64)memory, name, (DWORD64)memory, 0, 0))
+        printf("Failed to call SymAddSymbol.");
+
+    IMAGEHLP_MODULE64 ModuleInfo;
+
+    memset(&ModuleInfo, 0, sizeof(ModuleInfo));
+
+    ModuleInfo.SizeOfStruct = sizeof(ModuleInfo);
+
+    BOOL bRet = SymGetModuleInfo64(process, memory, &ModuleInfo);
+
+    DWORD64 Displacement = 0;
+    SYMBOL_INFO si; // it contains SYMBOL_INFO structure plus additional 
+    // space for the name of the symbol
+
+    bRet = SymFromAddr(
+        GetCurrentProcess(), // Process handle of the current process 
+        memory,             // Symbol address 
+        &Displacement,       // Address of the variable that will receive the displacement 
+        &si);              // Address of the SYMBOL_INFO structure (inside "sip" object)
+
     // Do NOT ever leave the memory writable! Also, don't forget to flush the
     // i-cache (I cannot begin to tell you how horrible that is to debug):
 #ifdef MS_WINDOWS
@@ -585,6 +659,8 @@ _PyJIT_Compile(_PyExecutorObject *executor, const _PyUOpInstruction trace[], siz
     size_t code_padding = DATA_ALIGN - ((code_size + state.trampolines.size) & (DATA_ALIGN - 1));
     size_t padding = page_size - ((code_size + state.trampolines.size + code_padding + data_size) & (page_size - 1));
     size_t total_size = code_size + state.trampolines.size + code_padding + data_size + padding;
+    total_size += sizeof(RUNTIME_FUNCTION);
+    total_size += sizeof(UNWIND_INFO);
     unsigned char *memory = jit_alloc(total_size);
     if (memory == NULL) {
         return -1;
@@ -651,6 +727,8 @@ compile_trampoline(void)
     size_t code_padding = DATA_ALIGN - ((code_size + state.trampolines.size) & (DATA_ALIGN - 1));
     size_t padding = page_size - ((code_size + state.trampolines.size + code_padding + data_size) & (page_size - 1));
     size_t total_size = code_size + state.trampolines.size + code_padding + data_size + padding;
+    total_size += sizeof(RUNTIME_FUNCTION);
+    total_size += sizeof(UNWIND_INFO);
     unsigned char *memory = jit_alloc(total_size);
     if (memory == NULL) {
         return NULL;
