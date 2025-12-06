@@ -71,6 +71,7 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     from typing import IO
 
+
 # Virtual-Key Codes: https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
 VK_MAP: dict[int, str] = {
     0x23: "end",  # VK_END
@@ -101,6 +102,8 @@ VK_MAP: dict[int, str] = {
     0x82: "f19",  # VK_F19
     0x83: "f20",  # VK_F20
 }
+for key in range(ord('A'), ord('Z') + 1):
+    VK_MAP[key] = chr(key)
 
 # Virtual terminal output sequences
 # Reference: https://learn.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences#output-sequences
@@ -472,7 +475,12 @@ class WindowsConsole(Console):
                 # Handle special keys like arrow keys and translate them into the appropriate command
                 key = VK_MAP.get(key_event.wVirtualKeyCode)
                 if key:
-                    if key_event.dwControlKeyState & CTRL_ACTIVE:
+                    if ((key_event.dwControlKeyState & CTRL_ACTIVE)
+                            and (key_event.dwControlKeyState & ALT_ACTIVE)):
+                        ctrl_data = chr(ord(key) & 0x1F)
+                        self.event_queue.insert(Event(evt="key", data=ctrl_data))
+                        return Event(evt="key", data="\033")
+                    elif key_event.dwControlKeyState & CTRL_ACTIVE:
                         key = f"ctrl {key}"
                     elif key_event.dwControlKeyState & ALT_ACTIVE:
                         # queue the key, return the meta command
@@ -486,6 +494,7 @@ class WindowsConsole(Console):
             elif self.__vt_support:
                 # If virtual terminal is enabled, scanning VT sequences
                 for char in raw_key.encode(self.event_queue.encoding, "replace"):
+                    #print("char", repr(char))
                     self.event_queue.push(char)
                 continue
 
@@ -566,7 +575,7 @@ class WindowsConsole(Console):
                 e.data += ch
         return e
 
-    def wait(self, timeout: float | None) -> bool:
+    def wait_for_event(self, timeout: float | None) -> bool:
         """Wait for an event."""
         if timeout is None:
             timeout = INFINITE
@@ -578,6 +587,16 @@ class WindowsConsole(Console):
         elif ret == WAIT_TIMEOUT:
             return False
         return True
+
+    def wait(self, timeout: float | None) -> bool:
+        """
+        Wait for events on the console.
+        """
+        return (
+            not self.event_queue.empty()
+            or
+            self.wait_for_event(timeout)
+        )
 
     def repaint(self) -> None:
         raise NotImplementedError("No repaint support")
@@ -723,3 +742,19 @@ else:
     WaitForSingleObject = _win_only
     OutHandle = 0
     InHandle = 0
+
+DEBUG_CONSOLE = True
+
+if DEBUG_CONSOLE:
+    import multiprocessing
+
+    AllocConsole = _KERNEL32.AllocConsole
+    def secondconsole(dbg_queue):
+        AllocConsole()
+        while True:
+            print(dbg_queue.get())
+
+    dbg_queue = multiprocessing.Queue()
+    multiprocessing.Process(target=secondconsole, args=[dbg_queue]).start()      
+
+    dbg_queue.put("started debug console")

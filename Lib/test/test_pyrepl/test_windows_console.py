@@ -365,6 +365,7 @@ class WindowsConsoleGetEventTests(TestCase):
     VK_RETURN = 0x0D
     VK_LEFT = 0x25
     VK_7 = 0x37
+    VK_L = 0x4c
     VK_M = 0x4D
     # Used for miscellaneous characters; it can vary by keyboard.
     # For the US standard keyboard, the '" key.
@@ -386,7 +387,7 @@ class WindowsConsoleGetEventTests(TestCase):
         self.console._read_input = self.mock
         self.console._WindowsConsole__vt_support = kwargs.get("vt_support",
                                                               False)
-        self.console.wait = MagicMock(return_value=True)
+        self.console.wait_for_event = MagicMock(return_value=True)
         event = self.console.get_event(block=False)
         return event
 
@@ -478,9 +479,11 @@ class WindowsConsoleGetEventTests(TestCase):
     def test_left_RIGHT_ALT_PRESSED(self):
         ir = self.get_input_record(
             "\x00", self.VK_LEFT, self.RIGHT_ALT_PRESSED | self.ENHANCED_KEY)
+        breakpoint()
         self.assertEqual(self.get_event([ir]), Event(evt="key", data="\033"))
+        self.console.wait_for_event.return_value = False
         self.assertEqual(
-            self.console.get_event(), Event("key", "left"))
+            self.console.get_event(block=False), Event("key", "left"))
         # self.mock is not called again, since the second time we read from the
         # command queue
         self.assertEqual(self.mock.call_count, 1)
@@ -493,7 +496,7 @@ class WindowsConsoleGetEventTests(TestCase):
             self.console.get_event(), Event("key", "left"))
         self.assertEqual(self.mock.call_count, 1)
 
-    def test_m_LEFT_ALT_PRESSED_and_LEFT_CTRL_PRESSED(self):
+    def test_m_LEFT_ALT_PRESSED_and_LEFT_CTRL_PRESSED_and_L(self):
         # For the shift keys, Windows does not send anything when
         # ALT and CTRL are both pressed, so let's test with VK_M.
         # get_event() receives this input, but does not
@@ -549,6 +552,16 @@ class WindowsConsoleGetEventTests(TestCase):
         self.assertEqual(self.get_event([ir]), Event("key", "ä"))
         self.assertEqual(self.mock.call_count, 1)
 
+    def test_CTRL_ALT_L(self):
+        ir = self.get_input_record(
+            "\x00", self.VK_L, control=self.LEFT_ALT_PRESSED | self.LEFT_CTRL_PRESSED)
+        self.assertEqual(self.get_event([ir]),
+                         Event(evt='key', data='\x1b', raw=bytearray(b'\x1b')))
+        self.console.wait_for_event.return_value = False
+        self.assertEqual(self.console.get_event(block=False),
+                         Event(evt='key', data='\x0c', raw=bytearray(b'\x0c')))
+        self.assertEqual(self.mock.call_count, 2)
+
     # virtual terminal tests
     # Note: wVirtualKeyCode, wVirtualScanCode and dwControlKeyState
     # are always zero in this case.
@@ -575,6 +588,20 @@ class WindowsConsoleGetEventTests(TestCase):
         self.assertEqual(self.get_event(irs, vt_support=True),
                          Event(evt='key', data='up', raw=bytearray(b'\x1b[A')))
         self.assertEqual(self.mock.call_count, 3)
+
+    def test_CTRL_ALT_L_vt(self):
+        # The Windows VT already sends us these two events,
+        # where the first is ESC and the second ctrl-l = 0x4C & 0x1F
+        irs = [self.get_input_record(x) for x in "\x1b\x0c"]
+
+        self.assertEqual(self.get_event(irs, vt_support=True),
+                         Event(evt='key', data='\x1b', raw=bytearray(b'\x1b')))
+        # 
+        self.console.wait_for_event.return_value = False
+        # handle1() in reader is calling us with block=False.
+        self.assertEqual(self.console.get_event(block=False),
+                         Event(evt='key', data='\x0c', raw=bytearray(b'\x0c')))
+        self.assertEqual(self.mock.call_count, 2)
 
 
 if __name__ == "__main__":
