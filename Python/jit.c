@@ -131,14 +131,50 @@ jit_free(unsigned char *memory, size_t size)
 }
 static bool sym_initialized = false;
 
-static int
-mark_executable(unsigned char *memory, size_t size)
+static void add_symbols(unsigned char* memory, size_t size)
 {
-    if (size == 0) {
-        return 0;
-    }
-    assert(size % get_page_size() == 0);
+    HANDLE process = GetCurrentProcess();
+    if (!sym_initialized)
+    {
+        if (!SymInitialize(process, NULL, false))
+            printf("Failed to call SymInitialize.");
 
+        sym_initialized = true;
+        DWORD opts = SymGetOptions();
+        SymSetOptions(opts | SYMOPT_DEFERRED_LOADS | SYMOPT_UNDNAME | SYMOPT_DEBUG | SYMOPT_ALLOW_ABSOLUTE_SYMBOLS);
+    }
+    char name[80];
+    snprintf(name, sizeof(name), "JIT_mod_at_%p", memory);
+    DWORD64 addr = SymLoadModuleEx(process, NULL,
+        "dummy.dll",
+        name, (DWORD64)memory, (DWORD)size, NULL, SLMFLAG_VIRTUAL);
+    if (!addr)
+        printf("Failed to call SymLoadModuleEx.");
+    snprintf(name, sizeof(name), "JIT_func_at_%p", memory);
+    if (!SymAddSymbol(process, (DWORD64)memory, name, (DWORD64)memory, size, 0))//SYMFLAG_FUNCTION | SYMFLAG_VIRTUAL | SYMFLAG_PUBLIC | SYMFLAG_EXPORT))
+        printf("Failed to call SymAddSymbol.");
+
+    IMAGEHLP_MODULE64 ModuleInfo;
+
+    memset(&ModuleInfo, 0, sizeof(ModuleInfo));
+
+    ModuleInfo.SizeOfStruct = sizeof(ModuleInfo);
+
+    BOOL bRet = SymGetModuleInfo64(process, (DWORD64)(memory + 10), &ModuleInfo);
+
+    DWORD64 Displacement = 0;
+    char buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)];
+    PSYMBOL_INFO pSymbol = (PSYMBOL_INFO)buffer;
+
+    pSymbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+    pSymbol->MaxNameLen = MAX_SYM_NAME;
+
+    bRet = SymFromAddr(
+        GetCurrentProcess(), (DWORD64)(memory + 20), &Displacement, pSymbol);
+}
+
+static void add_unwind_info(unsigned char* memory, size_t size)
+{
     UNWIND_INFO* unwind_info = (UNWIND_INFO*)(memory + size - sizeof(RUNTIME_FUNCTION) - sizeof(UNWIND_INFO));
     memset(unwind_info, 0, sizeof(UNWIND_INFO));
     unwind_info->Version = 1;
@@ -150,42 +186,20 @@ mark_executable(unsigned char *memory, size_t size)
     func_table->BeginAddress = 0;
     func_table->EndAddress = (DWORD)size;
     func_table->UnwindData = (DWORD)((unsigned char*)unwind_info - base_address);
-    //RtlAddFunctionTable(func_table, 1, (DWORD64)memory);
+    RtlAddFunctionTable(func_table, 1, (DWORD64)memory);
+}
 
-    HANDLE process = GetCurrentProcess();
-    if (!sym_initialized)
-    {
-        if (!SymInitialize(process, NULL, false))
-            printf("Failed to call SymInitialize.");
-
-        sym_initialized = true;
+static int
+mark_executable(unsigned char *memory, size_t size)
+{
+    if (size == 0) {
+        return 0;
     }
-    char name[80];
-    snprintf(name, sizeof(name), "JIT_mod_at_%p", memory);
-    if (!SymLoadModuleEx(process, NULL, NULL, name, (DWORD64)memory, (DWORD)size, NULL, SLMFLAG_VIRTUAL))
-        printf("Failed to call SymLoadModuleEx.");
-    snprintf(name, sizeof(name), "JIT_func_at_%p", memory);
-    if (!SymAddSymbol(process, (DWORD64)memory, name, (DWORD64)memory, 0, 0))
-        printf("Failed to call SymAddSymbol.");
+    assert(size % get_page_size() == 0);
 
-    IMAGEHLP_MODULE64 ModuleInfo;
 
-    memset(&ModuleInfo, 0, sizeof(ModuleInfo));
-
-    ModuleInfo.SizeOfStruct = sizeof(ModuleInfo);
-
-    BOOL bRet = SymGetModuleInfo64(process, memory, &ModuleInfo);
-
-    DWORD64 Displacement = 0;
-    SYMBOL_INFO si; // it contains SYMBOL_INFO structure plus additional 
-    // space for the name of the symbol
-
-    bRet = SymFromAddr(
-        GetCurrentProcess(), // Process handle of the current process 
-        memory,             // Symbol address 
-        &Displacement,       // Address of the variable that will receive the displacement 
-        &si);              // Address of the SYMBOL_INFO structure (inside "sip" object)
-
+    //add_unwind_info(memory, size);
+    add_symbols(memory, size);
     // Do NOT ever leave the memory writable! Also, don't forget to flush the
     // i-cache (I cannot begin to tell you how horrible that is to debug):
 #ifdef MS_WINDOWS
@@ -690,10 +704,9 @@ _PyJIT_Compile(_PyExecutorObject *executor, const _PyUOpInstruction trace[], siz
     size_t page_size = get_page_size();
     assert((page_size & (page_size - 1)) == 0);
     size_t code_padding = DATA_ALIGN - ((code_size + state.trampolines.size) & (DATA_ALIGN - 1));
+    data_size += sizeof(RUNTIME_FUNCTION) + sizeof(UNWIND_INFO);
     size_t padding = page_size - ((code_size + state.trampolines.size + code_padding + data_size + state.got_symbols.size) & (page_size - 1));
     size_t total_size = code_size + state.trampolines.size + code_padding + data_size + state.got_symbols.size + padding;
-    total_size += sizeof(RUNTIME_FUNCTION);
-    total_size += sizeof(UNWIND_INFO);
     unsigned char *memory = jit_alloc(total_size);
     if (memory == NULL) {
         return -1;
@@ -728,6 +741,7 @@ _PyJIT_Compile(_PyExecutorObject *executor, const _PyUOpInstruction trace[], siz
     group->emit(code, data, executor, NULL, &state);
     code += group->code_size;
     data += group->data_size;
+    data += sizeof(RUNTIME_FUNCTION) + sizeof(UNWIND_INFO);
     assert(code == memory + code_size);
     assert(data == memory + code_size + state.trampolines.size + code_padding + data_size);
     if (mark_executable(memory, total_size)) {
@@ -761,10 +775,9 @@ compile_trampoline(void)
     size_t page_size = get_page_size();
     assert((page_size & (page_size - 1)) == 0);
     size_t code_padding = DATA_ALIGN - ((code_size + state.trampolines.size) & (DATA_ALIGN - 1));
+    data_size += sizeof(RUNTIME_FUNCTION) + sizeof(UNWIND_INFO);
     size_t padding = page_size - ((code_size + state.trampolines.size + code_padding + data_size + state.got_symbols.size) & (page_size - 1));
     size_t total_size = code_size + state.trampolines.size + code_padding + data_size + state.got_symbols.size + padding;
-    total_size += sizeof(RUNTIME_FUNCTION);
-    total_size += sizeof(UNWIND_INFO);
     unsigned char *memory = jit_alloc(total_size);
     if (memory == NULL) {
         return NULL;
@@ -779,6 +792,7 @@ compile_trampoline(void)
     group = &trampoline;
     group->emit(code, data, &dummy, NULL, &state);
     code += group->code_size;
+    data += sizeof(RUNTIME_FUNCTION) + sizeof(UNWIND_INFO);
     data += group->data_size;
     assert(code == memory + code_size);
     assert(data == memory + code_size + state.trampolines.size + code_padding + data_size);
