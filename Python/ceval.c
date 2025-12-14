@@ -1041,6 +1041,7 @@ _Py_VectorCall_StackRefSteal(
     _PyStackRef kwnames)
 {
     PyObject *res;
+    PyThreadState* tstate = _PyThreadState_GET();
     STACKREFS_TO_PYOBJECTS(arguments, total_args, args_o);
     if (CONVERSION_FAILED(args_o)) {
         res = NULL;
@@ -1056,7 +1057,7 @@ _Py_VectorCall_StackRefSteal(
         callable_o, args_o,
         positional_args | PY_VECTORCALL_ARGUMENTS_OFFSET,
         kwnames_o);
-    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o);
+    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o, total_args);
     assert((res != NULL) ^ (PyErr_Occurred() != NULL));
 cleanup:
     PyStackRef_XCLOSE(kwnames);
@@ -1078,6 +1079,7 @@ _Py_BuiltinCallFast_StackRefSteal(
     int total_args)
 {
     PyObject *res;
+    PyThreadState* tstate = _PyThreadState_GET();
     STACKREFS_TO_PYOBJECTS(arguments, total_args, args_o);
     if (CONVERSION_FAILED(args_o)) {
         res = NULL;
@@ -1090,7 +1092,7 @@ _Py_BuiltinCallFast_StackRefSteal(
         args_o,
         total_args
     );
-    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o);
+    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o, total_args);
     assert((res != NULL) ^ (PyErr_Occurred() != NULL));
 cleanup:
     // arguments is a pointer into the GC visible stack,
@@ -1111,6 +1113,7 @@ _Py_BuiltinCallFastWithKeywords_StackRefSteal(
     int total_args)
 {
     PyObject *res;
+    PyThreadState* tstate = _PyThreadState_GET();
     STACKREFS_TO_PYOBJECTS(arguments, total_args, args_o);
     if (CONVERSION_FAILED(args_o)) {
         res = NULL;
@@ -1120,7 +1123,7 @@ _Py_BuiltinCallFastWithKeywords_StackRefSteal(
     PyCFunctionFastWithKeywords cfunc =
         _PyCFunctionFastWithKeywords_CAST(PyCFunction_GET_FUNCTION(callable_o));
     res = cfunc(PyCFunction_GET_SELF(callable_o), args_o, total_args, NULL);
-    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o);
+    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o, total_args);
     assert((res != NULL) ^ (PyErr_Occurred() != NULL));
 cleanup:
     // arguments is a pointer into the GC visible stack,
@@ -1143,6 +1146,7 @@ _PyCallMethodDescriptorFast_StackRefSteal(
     int total_args)
 {
     PyObject *res;
+    PyThreadState* tstate = _PyThreadState_GET();
     STACKREFS_TO_PYOBJECTS(arguments, total_args, args_o);
     if (CONVERSION_FAILED(args_o)) {
         res = NULL;
@@ -1153,7 +1157,7 @@ _PyCallMethodDescriptorFast_StackRefSteal(
 
     PyCFunctionFast cfunc = _PyCFunctionFast_CAST(meth->ml_meth);
     res = cfunc(self, (args_o + 1), total_args - 1);
-    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o);
+    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o, total_args);
     assert((res != NULL) ^ (PyErr_Occurred() != NULL));
 cleanup:
     // arguments is a pointer into the GC visible stack,
@@ -1176,6 +1180,7 @@ _PyCallMethodDescriptorFastWithKeywords_StackRefSteal(
     int total_args)
 {
     PyObject *res;
+    PyThreadState* tstate = _PyThreadState_GET();
     STACKREFS_TO_PYOBJECTS(arguments, total_args, args_o);
     if (CONVERSION_FAILED(args_o)) {
         res = NULL;
@@ -1187,7 +1192,7 @@ _PyCallMethodDescriptorFastWithKeywords_StackRefSteal(
     PyCFunctionFastWithKeywords cfunc =
         _PyCFunctionFastWithKeywords_CAST(meth->ml_meth);
     res = cfunc(self, (args_o + 1), total_args-1, NULL);
-    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o);
+    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o, total_args);
     assert((res != NULL) ^ (PyErr_Occurred() != NULL));
 cleanup:
     // arguments is a pointer into the GC visible stack,
@@ -1208,6 +1213,7 @@ _Py_CallBuiltinClass_StackRefSteal(
     int total_args)
 {
     PyObject *res;
+    PyThreadState* tstate = _PyThreadState_GET();
     STACKREFS_TO_PYOBJECTS(arguments, total_args, args_o);
     if (CONVERSION_FAILED(args_o)) {
         res = NULL;
@@ -1215,7 +1221,7 @@ _Py_CallBuiltinClass_StackRefSteal(
     }
     PyTypeObject *tp = (PyTypeObject *)PyStackRef_AsPyObjectBorrow(callable);
     res = tp->tp_vectorcall((PyObject *)tp, args_o, total_args, NULL);
-    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o);
+    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o, total_args);
     assert((res != NULL) ^ (PyErr_Occurred() != NULL));
 cleanup:
     // arguments is a pointer into the GC visible stack,
@@ -1235,13 +1241,14 @@ _Py_BuildString_StackRefSteal(
     int total_args)
 {
     PyObject *res;
+    PyThreadState* tstate = _PyThreadState_GET();
     STACKREFS_TO_PYOBJECTS(arguments, total_args, args_o);
     if (CONVERSION_FAILED(args_o)) {
         res = NULL;
         goto cleanup;
     }
     res = _PyUnicode_JoinArray(&_Py_STR(empty), args_o, total_args);
-    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o);
+    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o, total_args);
     assert((res != NULL) ^ (PyErr_Occurred() != NULL));
 cleanup:
     // arguments is a pointer into the GC visible stack,
@@ -1260,6 +1267,7 @@ _Py_BuildMap_StackRefSteal(
     int half_args)
 {
     PyObject *res;
+    PyThreadState* tstate = _PyThreadState_GET();
     STACKREFS_TO_PYOBJECTS(arguments, half_args*2, args_o);
     if (CONVERSION_FAILED(args_o)) {
         res = NULL;
@@ -1270,7 +1278,7 @@ _Py_BuildMap_StackRefSteal(
         args_o+1, 2,
         half_args
     );
-    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o);
+    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o, half_args * 2);
     assert((res != NULL) ^ (PyErr_Occurred() != NULL));
 cleanup:
     // arguments is a pointer into the GC visible stack,
@@ -1370,14 +1378,14 @@ _PyObjectArray_FromStackRefArray(_PyThreadStateImpl *_tstate, _PyStackRef *restr
         if (result == NULL) {
             return NULL;
         }
+        result++;
+        result[0] = NULL; /* Keep GCC happy */
     }
     else {
         result = _tstate->stackref_scratch + _tstate->n_stackref_scratch_used;
         _tstate->n_stackref_scratch_used += (int)nargs + 1;
         assert(_tstate->n_stackref_scratch_used < MAX_STACKREF_SCRATCH);
     }
-    result++;
-    result[0] = NULL; /* Keep GCC happy */
     for (int i = 0; i < nargs; i++) {
         result[i] = PyStackRef_AsPyObjectBorrow(input[i]);
     }

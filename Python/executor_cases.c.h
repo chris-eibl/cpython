@@ -7814,11 +7814,14 @@
             PyObject *name = GETITEM(FRAME_CO_NAMES, oparg >> 2);
             PyTypeObject *cls = (PyTypeObject *)class;
             int method_found = 0;
-            stack_pointer[0] = global_super_st;
-            stack_pointer[1] = class_st;
-            stack_pointer[2] = self_st;
-            stack_pointer += 3;
-            ASSERT_WITHIN_STACK_BOUNDS(__FILE__, __LINE__);
+            PyObject *attr_o;
+            {
+                int *method_found_ptr = &method_found;
+                stack_pointer[0] = global_super_st;
+                stack_pointer[1] = class_st;
+                stack_pointer[2] = self_st;
+                stack_pointer += 3;
+                ASSERT_WITHIN_STACK_BOUNDS(__FILE__, __LINE__);
                 _PyFrame_SetStackPointer(frame, stack_pointer);
                 attr_o = _PySuper_Lookup(cls, self, name,
                     Py_TYPE(self)->tp_getattro == PyObject_GenericGetAttr ? method_found_ptr : NULL);
@@ -10941,11 +10944,11 @@
             {
                 PyObject *stack[5] = {NULL, PyStackRef_AsPyObjectBorrow(exit_self), exc, val_o, tb};
                 int has_self = !PyStackRef_IsNull(exit_self);
-            stack_pointer[0] = lasti;
-            stack_pointer[1] = _stack_item_1;
-            stack_pointer[2] = val;
-            stack_pointer += 3;
-            ASSERT_WITHIN_STACK_BOUNDS(__FILE__, __LINE__);
+                stack_pointer[0] = lasti;
+                stack_pointer[1] = _stack_item_1;
+                stack_pointer[2] = val;
+                stack_pointer += 3;
+                ASSERT_WITHIN_STACK_BOUNDS(__FILE__, __LINE__);
                 _PyFrame_SetStackPointer(frame, stack_pointer);
                 res_o = PyObject_Vectorcall(exit_func_o, stack + 2 - has_self,
                     (3 + has_self) | PY_VECTORCALL_ARGUMENTS_OFFSET, NULL);
