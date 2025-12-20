@@ -1041,7 +1041,6 @@ _Py_VectorCall_StackRefSteal(
     _PyStackRef kwnames)
 {
     PyObject *res;
-    PyThreadState* tstate = _PyThreadState_GET();
     STACKREFS_TO_PYOBJECTS(arguments, total_args, args_o);
     if (CONVERSION_FAILED(args_o)) {
         res = NULL;
@@ -1057,13 +1056,72 @@ _Py_VectorCall_StackRefSteal(
         callable_o, args_o,
         positional_args | PY_VECTORCALL_ARGUMENTS_OFFSET,
         kwnames_o);
-    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o, total_args);
+    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o);
     assert((res != NULL) ^ (PyErr_Occurred() != NULL));
 cleanup:
     PyStackRef_XCLOSE(kwnames);
     // arguments is a pointer into the GC visible stack,
     // so we must NULL out values as we clear them.
     for (int i = total_args-1; i >= 0; i--) {
+        _PyStackRef tmp = arguments[i];
+        arguments[i] = PyStackRef_NULL;
+        PyStackRef_CLOSE(tmp);
+    }
+    PyStackRef_CLOSE(callable);
+    return res;
+}
+
+PyObject*
+_Py_VectorCallInstrumentation_StackRefSteal(
+    _PyStackRef callable,
+    _PyStackRef* arguments,
+    int total_args,
+    _PyStackRef kwnames,
+    bool call_instrumentation,
+    _PyInterpreterFrame* frame,
+    _Py_CODEUNIT* this_instr,
+    PyThreadState* tstate)
+{
+    PyObject* res;
+    STACKREFS_TO_PYOBJECTS(arguments, total_args, args_o);
+    if (CONVERSION_FAILED(args_o)) {
+        res = NULL;
+        goto cleanup;
+    }
+    PyObject* callable_o = PyStackRef_AsPyObjectBorrow(callable);
+    PyObject* kwnames_o = PyStackRef_AsPyObjectBorrow(kwnames);
+    int positional_args = total_args;
+    if (kwnames_o != NULL) {
+        positional_args -= (int)PyTuple_GET_SIZE(kwnames_o);
+    }
+    res = PyObject_Vectorcall(
+        callable_o, args_o,
+        positional_args | PY_VECTORCALL_ARGUMENTS_OFFSET,
+        kwnames_o);
+    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o);
+    if (call_instrumentation) {
+        PyObject* arg = total_args == 0 ?
+            &_PyInstrumentation_MISSING : PyStackRef_AsPyObjectBorrow(arguments[0]);
+        if (res == NULL) {
+            _Py_call_instrumentation_exc2(
+                tstate, PY_MONITORING_EVENT_C_RAISE,
+                frame, this_instr, callable_o, arg);
+        }
+        else {
+            int err = _Py_call_instrumentation_2args(
+                tstate, PY_MONITORING_EVENT_C_RETURN,
+                frame, this_instr, callable_o, arg);
+            if (err < 0) {
+                Py_CLEAR(res);
+            }
+        }
+    }
+    assert((res != NULL) ^ (PyErr_Occurred() != NULL));
+cleanup:
+    PyStackRef_XCLOSE(kwnames);
+    // arguments is a pointer into the GC visible stack,
+    // so we must NULL out values as we clear them.
+    for (int i = total_args - 1; i >= 0; i--) {
         _PyStackRef tmp = arguments[i];
         arguments[i] = PyStackRef_NULL;
         PyStackRef_CLOSE(tmp);
@@ -1079,7 +1137,6 @@ _Py_BuiltinCallFast_StackRefSteal(
     int total_args)
 {
     PyObject *res;
-    PyThreadState* tstate = _PyThreadState_GET();
     STACKREFS_TO_PYOBJECTS(arguments, total_args, args_o);
     if (CONVERSION_FAILED(args_o)) {
         res = NULL;
@@ -1092,7 +1149,7 @@ _Py_BuiltinCallFast_StackRefSteal(
         args_o,
         total_args
     );
-    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o, total_args);
+    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o);
     assert((res != NULL) ^ (PyErr_Occurred() != NULL));
 cleanup:
     // arguments is a pointer into the GC visible stack,
@@ -1113,7 +1170,6 @@ _Py_BuiltinCallFastWithKeywords_StackRefSteal(
     int total_args)
 {
     PyObject *res;
-    PyThreadState* tstate = _PyThreadState_GET();
     STACKREFS_TO_PYOBJECTS(arguments, total_args, args_o);
     if (CONVERSION_FAILED(args_o)) {
         res = NULL;
@@ -1123,7 +1179,7 @@ _Py_BuiltinCallFastWithKeywords_StackRefSteal(
     PyCFunctionFastWithKeywords cfunc =
         _PyCFunctionFastWithKeywords_CAST(PyCFunction_GET_FUNCTION(callable_o));
     res = cfunc(PyCFunction_GET_SELF(callable_o), args_o, total_args, NULL);
-    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o, total_args);
+    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o);
     assert((res != NULL) ^ (PyErr_Occurred() != NULL));
 cleanup:
     // arguments is a pointer into the GC visible stack,
@@ -1146,7 +1202,6 @@ _PyCallMethodDescriptorFast_StackRefSteal(
     int total_args)
 {
     PyObject *res;
-    PyThreadState* tstate = _PyThreadState_GET();
     STACKREFS_TO_PYOBJECTS(arguments, total_args, args_o);
     if (CONVERSION_FAILED(args_o)) {
         res = NULL;
@@ -1157,7 +1212,7 @@ _PyCallMethodDescriptorFast_StackRefSteal(
 
     PyCFunctionFast cfunc = _PyCFunctionFast_CAST(meth->ml_meth);
     res = cfunc(self, (args_o + 1), total_args - 1);
-    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o, total_args);
+    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o);
     assert((res != NULL) ^ (PyErr_Occurred() != NULL));
 cleanup:
     // arguments is a pointer into the GC visible stack,
@@ -1180,7 +1235,6 @@ _PyCallMethodDescriptorFastWithKeywords_StackRefSteal(
     int total_args)
 {
     PyObject *res;
-    PyThreadState* tstate = _PyThreadState_GET();
     STACKREFS_TO_PYOBJECTS(arguments, total_args, args_o);
     if (CONVERSION_FAILED(args_o)) {
         res = NULL;
@@ -1192,7 +1246,7 @@ _PyCallMethodDescriptorFastWithKeywords_StackRefSteal(
     PyCFunctionFastWithKeywords cfunc =
         _PyCFunctionFastWithKeywords_CAST(meth->ml_meth);
     res = cfunc(self, (args_o + 1), total_args-1, NULL);
-    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o, total_args);
+    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o);
     assert((res != NULL) ^ (PyErr_Occurred() != NULL));
 cleanup:
     // arguments is a pointer into the GC visible stack,
@@ -1213,7 +1267,6 @@ _Py_CallBuiltinClass_StackRefSteal(
     int total_args)
 {
     PyObject *res;
-    PyThreadState* tstate = _PyThreadState_GET();
     STACKREFS_TO_PYOBJECTS(arguments, total_args, args_o);
     if (CONVERSION_FAILED(args_o)) {
         res = NULL;
@@ -1221,7 +1274,7 @@ _Py_CallBuiltinClass_StackRefSteal(
     }
     PyTypeObject *tp = (PyTypeObject *)PyStackRef_AsPyObjectBorrow(callable);
     res = tp->tp_vectorcall((PyObject *)tp, args_o, total_args, NULL);
-    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o, total_args);
+    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o);
     assert((res != NULL) ^ (PyErr_Occurred() != NULL));
 cleanup:
     // arguments is a pointer into the GC visible stack,
@@ -1241,14 +1294,13 @@ _Py_BuildString_StackRefSteal(
     int total_args)
 {
     PyObject *res;
-    PyThreadState* tstate = _PyThreadState_GET();
     STACKREFS_TO_PYOBJECTS(arguments, total_args, args_o);
     if (CONVERSION_FAILED(args_o)) {
         res = NULL;
         goto cleanup;
     }
     res = _PyUnicode_JoinArray(&_Py_STR(empty), args_o, total_args);
-    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o, total_args);
+    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o);
     assert((res != NULL) ^ (PyErr_Occurred() != NULL));
 cleanup:
     // arguments is a pointer into the GC visible stack,
@@ -1267,7 +1319,6 @@ _Py_BuildMap_StackRefSteal(
     int half_args)
 {
     PyObject *res;
-    PyThreadState* tstate = _PyThreadState_GET();
     STACKREFS_TO_PYOBJECTS(arguments, half_args*2, args_o);
     if (CONVERSION_FAILED(args_o)) {
         res = NULL;
@@ -1278,7 +1329,7 @@ _Py_BuildMap_StackRefSteal(
         args_o+1, 2,
         half_args
     );
-    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o, half_args * 2);
+    STACKREFS_TO_PYOBJECTS_CLEANUP(args_o);
     assert((res != NULL) ^ (PyErr_Occurred() != NULL));
 cleanup:
     // arguments is a pointer into the GC visible stack,
@@ -1367,25 +1418,21 @@ extern void _PyUOpPrint(const _PyUOpInstruction *uop);
 
 
 PyObject **
-_PyObjectArray_FromStackRefArray(_PyThreadStateImpl *_tstate, _PyStackRef *restrict input, Py_ssize_t nargs)
+_PyObjectArray_FromStackRefArray(_PyStackRef *input, Py_ssize_t nargs, PyObject **scratch)
 {
     PyObject **result;
-    /* +1 because vectorcall might use -1 to write self */
-    PyObject **target = _tstate->stackref_scratch + _tstate->n_stackref_scratch_used + nargs + 1;
-    if (target > _tstate->stackref_scratch + MAX_STACKREF_SCRATCH) {
+    if (nargs > MAX_STACKREF_SCRATCH) {
         // +1 in case PY_VECTORCALL_ARGUMENTS_OFFSET is set.
         result = PyMem_Malloc((nargs + 1) * sizeof(PyObject *));
         if (result == NULL) {
             return NULL;
         }
-        result++;
-        result[0] = NULL; /* Keep GCC happy */
     }
     else {
-        result = _tstate->stackref_scratch + _tstate->n_stackref_scratch_used;
-        _tstate->n_stackref_scratch_used += (int)nargs + 1;
-        assert(_tstate->n_stackref_scratch_used < MAX_STACKREF_SCRATCH);
+        result = scratch;
     }
+    result++;
+    result[0] = NULL; /* Keep GCC happy */
     for (int i = 0; i < nargs; i++) {
         result[i] = PyStackRef_AsPyObjectBorrow(input[i]);
     }
@@ -1393,15 +1440,10 @@ _PyObjectArray_FromStackRefArray(_PyThreadStateImpl *_tstate, _PyStackRef *restr
 }
 
 void
-_PyObjectArray_Free(_PyThreadStateImpl *_tstate, PyObject **array, Py_ssize_t nargs, PyObject **temp_arr)
+_PyObjectArray_Free(PyObject **array, PyObject **scratch)
 {
-    /* -1 because we +1 previously */
-    if (array == temp_arr) {
-        _tstate->n_stackref_scratch_used -= ((int)nargs + 1);
-        assert(_tstate->n_stackref_scratch_used >= 0);
-    }
-    else {
-        PyMem_Free(array-1);
+    if (array != scratch) {
+        PyMem_Free(array);
     }
 }
 

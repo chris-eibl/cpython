@@ -23,9 +23,6 @@ struct _gc_thread_state {
 };
 #endif
 
-/* How much scratch space to give stackref to PyObject* conversion. */
-#define MAX_STACKREF_SCRATCH 1024
-
 #if _Py_TIER2
 typedef struct _PyJitTracerInitialState {
     int stack_depth;
@@ -92,8 +89,6 @@ typedef struct _PyThreadStateImpl {
     struct _qsbr_thread_state *qsbr;  // only used by free-threaded build
     struct llist_node mem_free_queue; // delayed free queue
 
-    PyObject *stackref_scratch[MAX_STACKREF_SCRATCH];
-    int n_stackref_scratch_used;
 #ifdef Py_GIL_DISABLED
     // Stack references for the current thread that exist on the C stack
     struct _PyCStackRef *c_stack_refs;
