@@ -6,6 +6,7 @@
 #include "osdefs.h"               // SEP
 
 #include <stdlib.h>               // mbstowcs()
+#include <wchar.h>                // wcslen()
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>             // getcwd()
 #endif

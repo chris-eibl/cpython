@@ -8,7 +8,7 @@
 
 #include <locale.h>               // setlocale()
 #include <stdlib.h>               // getenv()
-
+#include <wchar.h>                // wcscmp(), etc
 
 /* Forward declarations */
 static void

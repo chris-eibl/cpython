@@ -17,6 +17,7 @@
 
 #include <locale.h>               // setlocale()
 #include <stdlib.h>               // getenv()
+#include <wchar.h>                // wcscmp(), etc
 #if defined(MS_WINDOWS) || defined(__CYGWIN__)
 #  ifdef HAVE_IO_H
 #    include <io.h>

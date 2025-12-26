@@ -15,6 +15,7 @@ This software comes with no warranty. Use at your own risk.
 
 #include <locale.h>               // setlocale()
 #include <string.h>               // strlen()
+#include <wchar.h>                // wcslen(), etc.
 #ifdef HAVE_ERRNO_H
 #  include <errno.h>              // errno
 #endif

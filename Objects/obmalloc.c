@@ -13,6 +13,7 @@
 
 #include <stdlib.h>               // malloc()
 #include <stdbool.h>
+#include <wchar.h>                // wcslen()
 #ifdef WITH_MIMALLOC
 // Forward declarations of functions used in our mimalloc modifications
 static void _PyMem_mi_page_clear_qsbr(mi_page_t *page);

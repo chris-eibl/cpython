@@ -30,6 +30,8 @@
 #include <stdio.h>                // printf()
 #include <stdlib.h>               // qsort()
 #include <string.h>               // memset()
+#include <wchar.h>                // wcslen()
+
 #ifdef MS_WIN32
 #  include <windows.h>
 #endif

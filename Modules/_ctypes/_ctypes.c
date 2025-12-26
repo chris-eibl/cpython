@@ -117,6 +117,7 @@ bytes(cdata)
 
 
 #include <ffi.h>
+#include <wchar.h>                // wcslen()
 #ifdef MS_WIN32
 #include <malloc.h>
 #ifndef IS_INTRESOURCE

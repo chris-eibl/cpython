@@ -5,6 +5,7 @@
 #include "pycore_abstract.h"   // _PyIndex_Check()
 #include "pycore_object.h"     // _PyType_IsReady()
 #include "pycore_unicodeobject.h"     // _PyUnicodeWriter_FormatV()
+#include <wchar.h>             // wcslen(), etc
 
 typedef double va_double;
 

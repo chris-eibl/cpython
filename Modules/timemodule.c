@@ -8,6 +8,7 @@
 #include "pycore_time.h"          // _PyTimeFraction
 
 #include <time.h>                 // clock()
+#include <wchar.h>                // wcsftime()
 #ifdef HAVE_SYS_TIMES_H
 #  include <sys/times.h>          // times()
 #endif

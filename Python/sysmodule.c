@@ -42,6 +42,8 @@ Data members:
 #include "osdefs.h"               // DELIM
 #include "stdlib_module_names.h"  // _Py_stdlib_module_names
 
+#include <wchar.h>                // wcslen(), etc.
+
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>             // getpid()
 #endif

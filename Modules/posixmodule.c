@@ -43,6 +43,7 @@
 #include <stddef.h>               // offsetof()
 #include <stdio.h>                // ctermid()
 #include <stdlib.h>               // system()
+#include <wchar.h>                // wcslen()
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>             // symlink()

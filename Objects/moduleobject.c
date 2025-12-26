@@ -18,7 +18,7 @@
 
 #include "osdefs.h"               // MAXPATHLEN
 
-
+#include <wchar.h>                // wcscmp(), wcsrchr()
 #define _PyModule_CAST(op) \
     (assert(PyModule_Check(op)), _Py_CAST(PyModuleObject*, (op)))
 
