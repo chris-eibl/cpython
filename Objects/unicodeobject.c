@@ -62,6 +62,7 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #include "stringlib/eq.h"         // unicode_eq()
 #include <stddef.h>               // ptrdiff_t
+#include <wchar.h>                // memchr, etc.
 
 #ifdef MS_WINDOWS
 #include <windows.h>

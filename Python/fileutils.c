@@ -12,6 +12,7 @@
 
 #ifdef MS_WINDOWS
 #  include <malloc.h>
+#  include <wchar.h>                // _wgetcwd
 #  include <windows.h>
 #  include <winioctl.h>             // FILE_DEVICE_* constants
 #  include "pycore_fileutils_windows.h" // FILE_STAT_BASIC_INFORMATION

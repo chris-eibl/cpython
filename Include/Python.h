@@ -22,7 +22,7 @@
 #include <limits.h>               // INT_MAX
 #include <math.h>                 // HUGE_VAL
 #include <stdarg.h>               // va_list
-#include <wchar.h>                // wchar_t
+#include <stddef.h>               // wchar_t
 #ifdef HAVE_SYS_TYPES_H
 #  include <sys/types.h>          // ssize_t
 #endif
