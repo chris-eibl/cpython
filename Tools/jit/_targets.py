@@ -277,6 +277,16 @@ class _COFF(
             # skip debug sections
             return
         flags = {flag["Name"] for flag in section["Characteristics"]["Flags"]}
+        if name == ".bss" and "IMAGE_SCN_LNK_COMDAT" in flags:
+            # __declspec(selectany) int _Avx2WmemEnabledWeakValue = 0;
+            # in ucrt\wchar.h results in 4 + 4 (due padding) useless bytes
+            # in the data section of each stencil.
+            s = section["Symbols"]
+            if len(s) == 2:
+                if (s[0]["Symbol"]["Name"] == ".bss"
+                    # x86_64 has one and x86 has two leading underscores
+                    and "Avx2WmemEnabledWeakValue" in s[1]["Symbol"]["Name"]):
+                    return
         if "SectionData" in section:
             section_data_bytes = section["SectionData"]["Bytes"]
         else:
