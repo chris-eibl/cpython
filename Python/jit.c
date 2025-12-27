@@ -29,6 +29,8 @@
 
 #include "pycore_jit.h"
 
+#include <jitprofiling.h>
+
 // Memory management stuff: ////////////////////////////////////////////////////
 
 #ifndef MS_WINDOWS
@@ -129,6 +131,20 @@ mark_executable(unsigned char *memory, size_t size)
         jit_error("unable to protect executable memory");
         return -1;
     }
+
+    printf("Is active: %d\n", iJIT_IsProfilingActive());
+    unsigned int method_id = iJIT_GetNewMethodID();
+
+    iJIT_Method_Load a = { 0 };
+    a.method_id = method_id;
+    a.method_load_address = memory;
+    a.method_size = (unsigned int)size;
+    char name[80];
+    snprintf(name, sizeof(name), "JIT_at_%p_id_%d", memory, method_id);
+    a.method_name = name;
+    int notify_res = iJIT_NotifyEvent(iJVM_EVENT_TYPE_METHOD_LOAD_FINISHED, (void*)&a);
+    printf("Notify %s: %d\n", name, notify_res);
+    //iJIT_NotifyEvent(iJVM_EVENT_TYPE_SHUTDOWN, NULL);
     return 0;
 }
 
