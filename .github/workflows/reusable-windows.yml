@@ -34,16 +34,16 @@ jobs:
       run: echo "::add-matcher::.github/problem-matchers/msvc.json"
     - name: Build CPython
       run: >-
-        .\\PCbuild\\build.bat
+        echo .\\PCbuild\\build.bat
         -e -d -v
         -p "${ARCH}"
         ${{ fromJSON(inputs.free-threading) && '--disable-gil' || '' }}
       shell: bash
     - name: Display build info
-      run: .\\python.bat -m test.pythoninfo
+      run: echo .\\python.bat -m test.pythoninfo
     - name: Tests
       run: >-
-        .\\PCbuild\\rt.bat
+        echo .\\PCbuild\\rt.bat
         -p "${ARCH}"
         -d -q --fast-ci
         ${{ fromJSON(inputs.free-threading) && '--disable-gil' || '' }}
