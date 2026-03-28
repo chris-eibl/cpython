@@ -30,10 +30,8 @@ env:
 jobs:
   build-windows:
     name: >-
-      Windows (
-      ${{ matrix.interpreter }})
-      ${{ fromJSON(matrix.free-threading) && ', free-threading)' || '' }}
-      )
+      Windows
+      ${{ fromJSON(matrix.free-threading) && '(free-threading)' || '' }}
     # needs: build-context
     # if: fromJSON(needs.build-context.outputs.run-windows-tests)
     strategy:
