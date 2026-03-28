@@ -49,7 +49,12 @@ jobs:
         ${{ fromJSON(inputs.free-threading) && '--disable-gil' || '' }}
       shell: bash
     - name: Display build info
-      run: echo .\\python.bat -m test.pythoninfo ${{github.ref}}, ${{github.head_ref}}, ${{github.base_ref}}, ${{github.ref_name}}
+      run: |
+        echo .\\python.bat -m test.pythoninfo
+        echo github.ref ${{github.ref}}
+        echo github.head_ref ${{github.head_ref}}
+        echo github.base_ref ${{github.base_ref}}
+        echo github.ref_name ${{github.ref_name}}
     - name: Tests
       run: >-
         echo .\\PCbuild\\rt.bat
