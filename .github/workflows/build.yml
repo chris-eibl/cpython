@@ -44,12 +44,17 @@ jobs:
         free-threading:
           - false
           - true
+        interpreter:
+          - regular
+          - tail-calling
         exclude:
           # Skip Win32 on free-threaded builds
           - { arch: Win32, free-threading: true }
+        include:
+          - { arch: x64, free-threading: false, interpreter: tail-calling }
+          - { arch: x64, free-threading: true,  interpreter: tail-calling }
     uses: ./.github/workflows/reusable-windows.yml
     with:
       arch: ${{ matrix.arch }}
       free-threading: ${{ matrix.free-threading }}
-
-  
+      interpreter: ${{ matrix.interpreter }}
