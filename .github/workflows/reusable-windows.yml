@@ -12,6 +12,12 @@ on:
         required: false
         type: boolean
         default: false
+      interpreter:
+        description: Which interpreter to build
+        required: false
+        type: string
+        default: regular
+
 
 env:
   FORCE_COLOR: 1
