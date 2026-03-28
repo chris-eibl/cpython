@@ -53,9 +53,11 @@ jobs:
         exclude:
           # Skip Win32 on free-threaded builds
           - { arch: Win32, free-threading: true }
-          # Skip tail-calling interpreter on MSVC when it is not supported
+          # Skip tail-calling interpreter on MSVC when it is not supported ...
           - { interpreter: tail-calling, supports_msvc_tail_calling: false }
-          - { arch: [Win32, arm64], interpreter: tail-calling }
+          # ... would be nice to code the arch if into supports_msvc_tail_calling
+          - { arch: Win32, interpreter: tail-calling }
+          - { arch: arm64, interpreter: tail-calling }
 
     uses: ./.github/workflows/reusable-windows.yml
     with:
