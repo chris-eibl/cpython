@@ -46,6 +46,7 @@ jobs:
           - true
         interpreter:
           - regular
+          - tail-calling
         supports_msvc_tail_calling:
           # only supported on x64 and main / 3.15+ branches
           - ${{ startsWith(github.ref_name, 'main') || startsWith(github.ref_name, '3.15') || startsWith(github.base_ref, 'main') || startsWith(github.base_ref, '3.15')}}
@@ -54,9 +55,9 @@ jobs:
           - { arch: Win32, free-threading: true }
           # Skip tail-calling interpreter on MSVC when it is not supported
           - { interpreter: tail-calling, supports_msvc_tail_calling: false }
-        include:
-          - { arch: x64, free-threading: false, interpreter: tail-calling }
-          - { arch: x64, free-threading: true,  interpreter: tail-calling }
+        #include:
+        #  - { arch: x64, free-threading: false, interpreter: tail-calling }
+        #  - { arch: x64, free-threading: true,  interpreter: tail-calling }
     uses: ./.github/workflows/reusable-windows.yml
     with:
       arch: ${{ matrix.arch }}
