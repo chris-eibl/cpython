@@ -44,7 +44,7 @@ jobs:
       run: >-
         echo .\\PCbuild\\build.bat
         -e -v
-        {{ inputs.interpreter == 'tail-calling' && '--tail-call-interp -c Release' || '-d' }}
+        ${{ inputs.interpreter == 'tail-calling' && '--tail-call-interp -c Release' || '-d' }}
         -p "${ARCH}"
         ${{ fromJSON(inputs.free-threading) && '--disable-gil' || '' }}
       shell: bash
@@ -55,6 +55,6 @@ jobs:
         echo .\\PCbuild\\rt.bat
         -p "${ARCH}"
         -q --fast-ci
-        {{ inputs.interpreter == 'tail-calling' && '' || '-d' }}
+        ${{ inputs.interpreter == 'tail-calling' && '' || '-d' }}
         ${{ fromJSON(inputs.free-threading) && '--disable-gil' || '' }}
       shell: bash
