@@ -47,7 +47,7 @@ jobs:
         interpreter:
           - regular
         supports_msvc_tail_calling:
-          - ${{ startsWith(github.ref, 'main') || startsWith(github.ref, '3.') }}
+          - ${{ startsWith(github.ref, 'main') || startsWith(github.ref, '3.15') }}
         exclude:
           # Skip Win32 on free-threaded builds
           - { arch: Win32, free-threading: true }
