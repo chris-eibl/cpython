@@ -40,7 +40,7 @@ jobs:
         .\\PCbuild\\build.bat
         -e -d -v
         -p "${ARCH}"
-        ${{ inputs.arch == 'arm64' && '"/p:PreferredToolArchitecture=ARM64"' || '' }}
+        "/p:PreferredToolArchitecture=ARM64"
         ${{ inputs.free-threading && '--disable-gil' || '' }}
       shell: pwsh
     - name: Display build info
