@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - '3.14'
+      - '3.14.before'
   pull_request:
     branches:
-      - '3.14'
+      - '3.14.before'
 
 permissions:
   contents: read
