@@ -151,3 +151,11 @@ jobs:
             /getProperty:VCToolsVersion ^
             /getProperty:PreferredToolArchitecture ^
             /getProperty:PlatformTarget
+
+      - name: Inspect v143 toolset mapping
+        shell: pwsh
+        run: |
+          $path = 'C:\Program Files\Microsoft Visual Studio\18\Enterprise\MSBuild\Microsoft\VC\v180'
+
+          Get-ChildItem $path -Recurse -File -Include *.props,*.targets |
+            Select-String -Pattern 'v143|_VCTargetsPathForToolset|_PlatformToolsetShortName' -Context 2,2
