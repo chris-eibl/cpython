@@ -13,7 +13,8 @@ permissions:
   contents: read
 
 jobs:
-  debug-output:
+  probe:
+    name: Probe VS2026 ARM64 v143
     runs-on: windows-11-vs2026-arm
 
     steps:
@@ -22,35 +23,182 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
 
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+
           Write-Host "=== Architecture ==="
-          [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
-          $env:PROCESSOR_ARCHITECTURE
-          $env:RUNNER_ARCH
+          Write-Host "OSArchitecture: $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)"
+          Write-Host "PROCESSOR_ARCHITECTURE: $env:PROCESSOR_ARCHITECTURE"
+          Write-Host "RUNNER_ARCH: $env:RUNNER_ARCH"
 
+          Write-Host ""
           Write-Host "=== VS installations ==="
-          & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" `
-            -products * `
-            -format json
+          & $vswhere -products * -format json
 
+          Write-Host ""
           Write-Host "=== MSVC toolsets ==="
-          $installations = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" `
+          $installations = & $vswhere `
             -latest `
             -products * `
             -property installationPath
 
           foreach ($vs in $installations) {
             Write-Host "--- $vs ---"
-            Get-ChildItem "$vs\VC\Tools\MSVC" -Directory |
-              Select-Object Name, FullName
+
+            $toolsets = Get-ChildItem "$vs\VC\Tools\MSVC" -Directory
+
+            Write-Host "Toolsets found: $($toolsets.Count)"
+
+            $toolsets | ForEach-Object {
+              Write-Host "  $($_.Name) -> $($_.FullName)"
+            }
           }
 
-          & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" `
-              -products * `
-              -requires Microsoft.VisualStudio.Component.VC.v143 `
-              -format json
+          Write-Host ""
+          Write-Host "=== v143 component ==="
+          $result = & $vswhere `
+            -products * `
+            -requires Microsoft.VisualStudio.Component.VC.v143 `
+            -format json
 
-          & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" `
-              -products * `
-              -requires Microsoft.VisualStudio.Component.VC.v143 `
-              -requires Microsoft.VisualStudio.Component.VC.Tools.ARM64 `
-              -format json
+          Write-Host $result
+
+          Write-Host ""
+          Write-Host "=== v143 + ARM64 component ==="
+          $result = & $vswhere `
+            -products * `
+            -requires Microsoft.VisualStudio.Component.VC.v143 `
+            -requires Microsoft.VisualStudio.Component.VC.Tools.ARM64 `
+            -format json
+
+          Write-Host $result
+
+      - name: Inspect v143 files
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $vs = "C:\Program Files\Microsoft Visual Studio\18\Enterprise"
+
+          Write-Host "=== v143-related MSBuild files ==="
+          Get-ChildItem "$vs\VC" -Recurse -File `
+            -Include '*v143*.props', '*v143*.targets' `
+            -ErrorAction SilentlyContinue |
+            Select-Object -ExpandProperty FullName
+
+          Write-Host ""
+          Write-Host "=== ARM64 compilers ==="
+
+          Get-ChildItem "$vs\VC\Tools\MSVC" -Recurse -File `
+            -Filter cl.exe `
+            -ErrorAction SilentlyContinue |
+            Where-Object {
+              $_.FullName -match '\\bin\\[^\\]*\\arm64\\cl\.exe$'
+            } |
+            Select-Object -ExpandProperty FullName
+
+          Write-Host ""
+          Write-Host "=== 14.44 ARM64 compiler specifically ==="
+
+          $cl = "$vs\VC\Tools\MSVC\14.44.35207\bin\Hostarm64\arm64\cl.exe"
+
+          if (Test-Path $cl) {
+            Write-Host "FOUND: $cl"
+            & $cl
+          }
+          else {
+            Write-Error "NOT FOUND: $cl"
+          }
+
+      - name: Create minimal ARM64 v143 project
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          @'
+          #include <stdio.h>
+
+          int main(void)
+          {
+              printf("Hello from ARM64 v143\n");
+              return 0;
+          }
+          '@ | Set-Content -Encoding ascii test.cpp
+
+          @'
+          <Project DefaultTargets="Build"
+                   xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+            <ItemGroup Label="ProjectConfigurations">
+              <ProjectConfiguration Include="Release|ARM64">
+                <Configuration>Release</Configuration>
+                <Platform>ARM64</Platform>
+              </ProjectConfiguration>
+            </ItemGroup>
+
+            <PropertyGroup Label="Globals">
+              <ProjectGuid>{12345678-1234-1234-1234-123456789ABC}</ProjectGuid>
+              <Keyword>Win32Proj</Keyword>
+            </PropertyGroup>
+
+            <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+
+            <PropertyGroup
+              Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'"
+              Label="Configuration">
+              <ConfigurationType>Application</ConfigurationType>
+              <PlatformToolset>v143</PlatformToolset>
+            </PropertyGroup>
+
+            <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+
+            <ItemDefinitionGroup>
+              <ClCompile>
+                <WarningLevel>Level3</WarningLevel>
+              </ClCompile>
+            </ItemDefinitionGroup>
+
+            <ItemGroup>
+              <ClCompile Include="test.cpp" />
+            </ItemGroup>
+
+            <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+
+          </Project>
+          '@ | Set-Content -Encoding utf8 Test.vcxproj
+
+          Write-Host "=== Test project ==="
+          Get-Content Test.vcxproj
+
+      - name: Build ARM64 v143 project
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          Write-Host "=== MSBuild version ==="
+          msbuild -version
+
+          Write-Host ""
+          Write-Host "=== Building ARM64 / v143 ==="
+
+          msbuild Test.vcxproj `
+            /p:Configuration=Release `
+            /p:Platform=ARM64 `
+            /p:PlatformToolset=v143 `
+            /v:normal `
+            /bl:build.binlog
+
+      - name: Inspect resulting executable
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          Write-Host "=== Build output ==="
+          Get-ChildItem -Recurse -File .\Release | Select-Object FullName, Length
+
+          $exe = ".\Release\test.exe"
+
+          if (-not (Test-Path $exe)) {
+            throw "Expected executable was not produced: $exe"
+          }
+
+          Write-Host "SUCCESS: $exe exists"
