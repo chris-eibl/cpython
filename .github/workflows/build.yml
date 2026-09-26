@@ -18,7 +18,6 @@ jobs:
     runs-on: windows-11-vs2026-arm
 
     steps:
-    steps:
       - name: Inspect Visual Studio and all MSVC toolsets
         shell: pwsh
         run: |
