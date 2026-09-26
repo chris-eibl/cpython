@@ -13,9 +13,35 @@ permissions:
   contents: read
 
 jobs:
-  build-windows:
-    name: Windows ARM64
-    uses: ./.github/workflows/reusable-windows.yml
-    with:
-      arch: arm64
-      free-threading: false
+  debug-output:
+    runs-on: windows-11-vs2026-arm
+
+    steps:
+      - name: Inspect Visual Studio
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          Write-Host "=== Architecture ==="
+          [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
+          $env:PROCESSOR_ARCHITECTURE
+          $env:RUNNER_ARCH
+
+          Write-Host "=== VS installations ==="
+          & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" `
+            -products * `
+            -format json
+
+          Write-Host "=== MSVC toolsets ==="
+          $installations = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" `
+            -latest `
+            -products * `
+            -property installationPath
+
+          foreach ($vs in $installations) {
+            Write-Host "--- $vs ---"
+            Get-ChildItem "$vs\VC\Tools\MSVC" -Directory |
+              Select-Object Name, FullName
+          }
+
+
