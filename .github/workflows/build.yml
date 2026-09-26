@@ -132,3 +132,22 @@ jobs:
           Get-ChildItem 'C:\Program Files\Microsoft Visual Studio\18\Enterprise\MSBuild\Microsoft\VC\v180' `
             -Recurse -File -Include *.props,*.targets |
             Select-String -Pattern '_ToolsetFound' -Context 3,3
+
+      - name: Inspect v143 toolset resolution
+        shell: cmd
+        run: |
+          set MSBUILD=C:\Program Files\Microsoft Visual Studio\18\Enterprise\MSBuild\Current\Bin\msbuild.exe
+
+          "%MSBUILD%" PCbuild\_freeze_module.vcxproj ^
+            /p:Configuration=Debug ^
+            /p:Platform=ARM64 ^
+            /getProperty:PlatformToolset ^
+            /getProperty:_PlatformToolsetShortName ^
+            /getProperty:_VCTargetsPathForToolset ^
+            /getProperty:_ToolsetFound ^
+            /getProperty:_ToolsetVCTargetsVersion ^
+            /getProperty:VCTargetsPath ^
+            /getProperty:VCToolsInstallDir ^
+            /getProperty:VCToolsVersion ^
+            /getProperty:PreferredToolArchitecture ^
+            /getProperty:PlatformTarget
