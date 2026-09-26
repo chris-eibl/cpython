@@ -125,3 +125,10 @@ jobs:
           Get-ChildItem 'C:\Program Files\Microsoft Visual Studio\18\Enterprise\MSBuild\Microsoft\VC\v180' `
             -Recurse -File -Include *.props,*.targets |
             Select-String -Pattern '<PreferredToolArchitecture' -Context 2,2
+
+      - name: Find _ToolsetFound
+        shell: pwsh
+        run: |
+          Get-ChildItem 'C:\Program Files\Microsoft Visual Studio\18\Enterprise\MSBuild\Microsoft\VC\v180' `
+            -Recurse -File -Include *.props,*.targets |
+            Select-String -Pattern '_ToolsetFound' -Context 3,3
