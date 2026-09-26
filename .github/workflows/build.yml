@@ -4,12 +4,10 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main
-      - '3.*'
+      - '3.14'
   pull_request:
     branches:
-      - main
-      - '3.*'
+      - '3.14'
 
 permissions:
   contents: read
@@ -21,4 +19,3 @@ jobs:
     with:
       arch: arm64
       free-threading: false
-      interpreter: switch-case
