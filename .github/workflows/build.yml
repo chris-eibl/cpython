@@ -1,4 +1,4 @@
-name: Windows ARM64 CI experiment
+name: Probe VS2026 MSBuild toolset selection
 
 on:
   workflow_dispatch:
@@ -13,9 +13,108 @@ permissions:
   contents: read
 
 jobs:
-  build-windows:
-    name: Windows ARM64
-    uses: ./.github/workflows/reusable-windows.yml
-    with:
-      arch: arm64
-      free-threading: false
+  probe:
+    name: Probe MSBuild toolset selection
+    runs-on: windows-11-vs2026-arm
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Inspect Microsoft.Cpp.ToolsetLocation.props
+        shell: pwsh
+        run: |
+          $file = 'C:\Program Files\Microsoft Visual Studio\18\Enterprise\MSBuild\Microsoft\VC\v180\Microsoft.Cpp.ToolsetLocation.props'
+
+          Write-Host "=== $file ==="
+          $i = 0
+          Get-Content $file |
+            ForEach-Object {
+              '{0,4}: {1}' -f (++$i), $_
+            }
+
+      - name: Find HostARM64Suported
+        shell: pwsh
+        run: |
+          $path = 'C:\Program Files\Microsoft Visual Studio\18\Enterprise\MSBuild\Microsoft\VC\v180'
+
+          Write-Host "=== HostARM64Suported references ==="
+
+          Get-ChildItem $path -Recurse -File -Include *.props,*.targets,*.xml |
+            Select-String -Pattern 'HostARM64Suported' -Context 5,5
+
+      - name: Probe x86-hosted MSBuild defaults
+        shell: cmd
+        run: |
+          set MSBUILD=C:\Program Files\Microsoft Visual Studio\18\Enterprise\MSBuild\Current\Bin\msbuild.exe
+
+          echo === MSBuild version ===
+          "%MSBUILD%" -version
+
+          echo.
+          echo === Environment ===
+          echo PROCESSOR_ARCHITECTURE=%PROCESSOR_ARCHITECTURE%
+          echo PROCESSOR_ARCHITEW6432=%PROCESSOR_ARCHITEW6432%
+
+          echo.
+          echo === Default ===
+          "%MSBUILD%" PCbuild\_freeze_module.vcxproj ^
+            /p:Configuration=Debug ^
+            /p:Platform=ARM64 ^
+            /getProperty:Platform ^
+            /getProperty:PreferredToolArchitecture ^
+            /getProperty:HostARM64Suported ^
+            /getProperty:PROCESSOR_ARCHITECTURE ^
+            /getProperty:PROCESSOR_ARCHITEW6432 ^
+            /getProperty:PlatformToolset ^
+            /getProperty:VCToolsVersion ^
+            /getProperty:VCToolsInstallDir
+
+          echo.
+          echo === Explicit PreferredToolArchitecture=x86 ===
+          "%MSBUILD%" PCbuild\_freeze_module.vcxproj ^
+            /p:Configuration=Debug ^
+            /p:Platform=ARM64 ^
+            /p:PreferredToolArchitecture=x86 ^
+            /getProperty:Platform ^
+            /getProperty:PreferredToolArchitecture ^
+            /getProperty:HostARM64Suported ^
+            /getProperty:PROCESSOR_ARCHITECTURE ^
+            /getProperty:PROCESSOR_ARCHITEW6432 ^
+            /getProperty:PlatformToolset ^
+            /getProperty:VCToolsVersion ^
+            /getProperty:VCToolsInstallDir
+
+          echo.
+          echo === Explicit PreferredToolArchitecture=ARM64 ===
+          "%MSBUILD%" PCbuild\_freeze_module.vcxproj ^
+            /p:Configuration=Debug ^
+            /p:Platform=ARM64 ^
+            /p:PreferredToolArchitecture=ARM64 ^
+            /getProperty:Platform ^
+            /getProperty:PreferredToolArchitecture ^
+            /getProperty:HostARM64Suported ^
+            /getProperty:PROCESSOR_ARCHITECTURE ^
+            /getProperty:PROCESSOR_ARCHITEW6432 ^
+            /getProperty:PlatformToolset ^
+            /getProperty:VCToolsVersion ^
+            /getProperty:VCToolsInstallDir
+
+      - name: Inspect v143 compiler combinations
+        shell: pwsh
+        run: |
+          $root = 'C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.44.35207'
+
+          Write-Host "=== v143 compiler combinations ==="
+
+          @(
+            "$root\bin\HostX86\x86\cl.exe"
+            "$root\bin\HostX86\arm64\cl.exe"
+            "$root\bin\HostARM64\x86\cl.exe"
+            "$root\bin\HostARM64\arm64\cl.exe"
+          ) | ForEach-Object {
+            [PSCustomObject]@{
+              Path   = $_
+              Exists = Test-Path $_
+            }
+          } | Format-Table -AutoSize
