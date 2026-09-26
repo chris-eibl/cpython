@@ -38,7 +38,7 @@ jobs:
     - name: Inspect freeze project properties
       shell: cmd
       run: >-
-        "C:\Program Files\Microsoft Visual Studio\18\Enterprise\MSBuild\Current\Bin\msbuild.exe"
+        "C:\Program Files\Microsoft Visual Studio\18\Enterprise\MSBuild\Current\Bin\arm64\msbuild.exe"
         PCbuild\_freeze_module.vcxproj
         /p:Configuration=Debug
         /p:Platform=ARM64
@@ -49,13 +49,14 @@ jobs:
         /getProperty:VCToolsVersion
         /getProperty:VCToolsInstallDir
     - name: Build CPython
+      env:
+        MSBUILD: ${{ inputs.arch == 'arm64' && 'C:\Program Files\Microsoft Visual Studio\18\Enterprise\MSBuild\Current\Bin\arm64\msbuild.exe' || '' }}
       run: >-
         .\\PCbuild\\build.bat
         -e -d -v
-        -p arm64
-        "/p:PreferredToolArchitecture=ARM64"
+        -p "${ARCH}"
         ${{ inputs.free-threading && '--disable-gil' || '' }}
-      shell: cmd
+      shell: bash
     - name: Display build info
       run: .\\python.bat -m test.pythoninfo
     - name: Tests
