@@ -1,4 +1,4 @@
-name: Windows ARM64
+name: Windows ARM64 CI experiment
 
 on:
   workflow_dispatch:
