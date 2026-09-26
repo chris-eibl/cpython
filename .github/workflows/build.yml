@@ -174,18 +174,37 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
 
-          Write-Host "=== MSBuild version ==="
-          msbuild -version
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
 
-          Write-Host ""
+          $vs = & $vswhere `
+            -latest `
+            -products * `
+            -property installationPath
+
+          Write-Host "VS installation: $vs"
+
+          $msbuild = Join-Path $vs "MSBuild\Current\Bin\MSBuild.exe"
+
+          Write-Host "MSBuild: $msbuild"
+
+          if (-not (Test-Path $msbuild)) {
+            throw "MSBuild not found: $msbuild"
+          }
+
+          & $msbuild -version
+
           Write-Host "=== Building ARM64 / v143 ==="
 
-          msbuild Test.vcxproj `
+          & $msbuild Test.vcxproj `
             /p:Configuration=Release `
             /p:Platform=ARM64 `
             /p:PlatformToolset=v143 `
             /v:normal `
             /bl:build.binlog
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "MSBuild failed with exit code $LASTEXITCODE"
+          }
 
       - name: Inspect resulting executable
         shell: pwsh
