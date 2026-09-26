@@ -39,10 +39,10 @@ jobs:
       run: >-
         .\\PCbuild\\build.bat
         -e -d -v
-        -p "${ARCH}"
+        -p arm64
         "/p:PreferredToolArchitecture=ARM64"
         ${{ inputs.free-threading && '--disable-gil' || '' }}
-      shell: pwsh
+      shell: cmd
     - name: Display build info
       run: .\\python.bat -m test.pythoninfo
     - name: Tests
