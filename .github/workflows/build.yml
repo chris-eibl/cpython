@@ -44,4 +44,13 @@ jobs:
               Select-Object Name, FullName
           }
 
+          & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" `
+              -products * `
+              -requires Microsoft.VisualStudio.Component.VC.v143 `
+              -format json
 
+          & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" `
+              -products * `
+              -requires Microsoft.VisualStudio.Component.VC.v143 `
+              -requires Microsoft.VisualStudio.Component.VC.Tools.ARM64 `
+              -format json
